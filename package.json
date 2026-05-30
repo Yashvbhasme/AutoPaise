@@ -1,0 +1,15 @@
+{
+  "name": "autopaise",
+  "version": "1.0.0",
+  "description": "AutoPaise - UPI AutoPay Mandate Management Platform",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npm run dev:frontend",
+    "backend": "cd backend && npm run dev",
+    "dev": "concurrently -k -n frontend,backend -c cyan,green \"npm:frontend\" \"npm:backend\"",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

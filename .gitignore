@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+dist/
+build/
+uploads/
+temp_auth.json
+.DS_Store
+Thumbs.db
+.vite/
+.idea/
+.vscode/

@@ -1,0 +1,35 @@
+{
+  "name": "recurpay",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n frontend,backend -c cyan,green \"npm:dev:frontend\" \"npm:dev:backend\"",
+    "dev:frontend": "vite",
+    "dev:backend": "npm --prefix \"../backend\" run dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .js,.jsx"
+  },
+  "dependencies": {
+    "axios": "^1.13.6",
+    "lucide-react": "^0.381.0",
+    "mongodb": "^7.2.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-hot-toast": "^2.6.0",
+    "react-qr-code": "^2.0.8",
+    "react-router-dom": "^6.30.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.27",
+    "concurrently": "^9.2.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.33.2",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.3.0"
+  }
+}
