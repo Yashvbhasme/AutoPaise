@@ -11,6 +11,27 @@ connectDB();
 
 const app = express();
 
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
+  'http://localhost:3000',
+];
+
+const envAllowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+  ...(process.env.CORS_ORIGINS || '').split(','),
+]
+  .map((origin) => origin?.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [
+  ...defaultAllowedOrigins,
+  ...envAllowedOrigins,
+];
+
 // Webhook needs raw body BEFORE json parser
 app.use(
   '/api/razorpay/webhook',
@@ -19,13 +40,13 @@ app.use(
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
-    'http://localhost:3000',
-  ],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked origin: ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
