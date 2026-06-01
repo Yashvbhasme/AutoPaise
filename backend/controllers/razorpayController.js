@@ -1,6 +1,7 @@
 const razorpay = require('../config/razorpay');
 const Mandate = require('../models/Mandate');
 const User = require('../models/User');
+const AIService = require('../services/aiService');
 
 // Initiate Mandate on Razorpay
 exports.initiateMandateOnRazorpay = async (
@@ -213,11 +214,22 @@ exports.handleWebhook = async (req, res) => {
       const linkId =
         body.payload?.payment_link?.entity?.id;
       if (linkId) {
-        await Mandate.findOneAndUpdate(
+        const mandate = await Mandate.findOneAndUpdate(
           { razorpayPaymentLinkId: linkId },
-          { status: 'Active' }
+          { status: 'Active' },
+          { new: true }
         );
         console.log('✅ Mandate activated!');
+        
+        // Sync payment data to AI service
+        if (mandate) {
+          try {
+            await AIService.calculateRiskScore(mandate._id);
+            console.log('✅ AI Risk Score Updated for mandate:', mandate.mandateId);
+          } catch (aiError) {
+            console.error('AI Service error (non-critical):', aiError.message);
+          }
+        }
       }
     }
 

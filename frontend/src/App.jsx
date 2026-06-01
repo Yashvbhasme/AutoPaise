@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import AnimationTest from './pages/AnimationTest';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AIDashboard from './pages/AIDashboard';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -82,6 +83,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-dashboard"
+        element={
+          <ProtectedRoute>
+            <AIDashboard />
           </ProtectedRoute>
         }
       />

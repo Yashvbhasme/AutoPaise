@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { mandateAPI } from '../utils/api';
 import toast from 'react-hot-toast';
 import logo from '../assets/logo.png';
+import { RiskBadge } from '../components/RiskAndReminder';
 
 // ===== SIDEBAR COMPONENT =====
 const Sidebar = ({ active, onNavigate }) => {
@@ -385,7 +386,7 @@ const StatusBadge = ({ status }) => {
 
 // ===== MAIN DASHBOARD =====
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [mandates, setMandates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -693,7 +694,7 @@ const Dashboard = () => {
                   }}>
                     {['Mandate ID', 'Customer', 
                       'UPI ID', 'Amount', 
-                      'Frequency', 'Status', 
+                      'Frequency', 'Status', 'Risk',
                       'Action'].map(h => (
                       <th key={h} style={{
                         padding: '12px 16px',
@@ -783,6 +784,15 @@ const Dashboard = () => {
                         <StatusBadge 
                           status={mandate.status} 
                         />
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        {token && (
+                          <RiskBadge 
+                            mandateId={mandate._id} 
+                            userToken={token} 
+                            size="sm" 
+                          />
+                        )}
                       </td>
                       <td style={{ padding: '14px 16px' }}>
                         <button
