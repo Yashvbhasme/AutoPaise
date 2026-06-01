@@ -20,18 +20,20 @@ const defaultAllowedOrigins = [
   'https://auto-paise.vercel.app',
 ];
 
+const normalizeOrigin = (origin) => origin?.trim().replace(/\/+$/, '');
+
 const envAllowedOrigins = [
   process.env.CLIENT_URL,
   process.env.FRONTEND_URL,
   ...(process.env.CORS_ORIGINS || '').split(','),
 ]
-  .map((origin) => origin?.trim())
+  .map(normalizeOrigin)
   .filter(Boolean);
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   ...defaultAllowedOrigins,
   ...envAllowedOrigins,
-];
+].map(normalizeOrigin));
 
 // Webhook needs raw body BEFORE json parser
 app.use(
@@ -42,7 +44,7 @@ app.use(
 // Middleware
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.has(normalizeOrigin(origin))) {
       return callback(null, true);
     }
 
