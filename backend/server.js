@@ -66,8 +66,6 @@ app.use('/api/razorpay',
   require('./routes/razorpayRoutes'));
 app.use('/api/admin',
   require('./routes/adminRoutes'));
-app.use('/api/ai',
-  require('./routes/aiRoutes'));
 
 // Serve static files for uploads
 app.use('/uploads', express.static('uploads'));

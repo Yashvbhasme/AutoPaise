@@ -455,6 +455,22 @@ export const mockRazorpayAPI = {
       mandate,
       paymentLinkStatus: mandate.shortUrl ? 'paid' : 'created'
     });
+  },
+
+  syncPending: async () => {
+    const db = getDb();
+    db.mandates.forEach((mandate) => {
+      if (mandate.shortUrl && mandate.status !== 'Active') {
+        mandate.status = 'Active';
+      }
+    });
+    saveDb(db);
+
+    return buildResponse({
+      success: true,
+      count: db.mandates.length,
+      mandates: db.mandates
+    });
   }
 };
 

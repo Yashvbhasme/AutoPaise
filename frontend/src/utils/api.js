@@ -68,7 +68,8 @@ export const mandateAPI = {
 export const razorpayAPI = {
   initiate: (data) => (DEMO_MODE ? mockRazorpayAPI.initiate(data) : api.post('/api/razorpay/initiate', data)),
   getLink: (id) => (DEMO_MODE ? mockRazorpayAPI.getLink(id) : api.get(`/api/razorpay/payment-link/${id}`)),
-  syncStatus: (id) => (DEMO_MODE ? mockRazorpayAPI.syncStatus(id) : api.post(`/api/razorpay/payment-link/${id}/sync`)),
+  syncStatus: (id, data) => (DEMO_MODE ? mockRazorpayAPI.syncStatus(id) : api.post(`/api/razorpay/payment-link/${id}/sync`, data)),
+  syncPending: () => (DEMO_MODE ? mockRazorpayAPI.syncPending() : api.post('/api/razorpay/sync-pending')),
 };
 
 export default api;

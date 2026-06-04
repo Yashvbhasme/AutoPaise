@@ -82,18 +82,30 @@ const MandateDetails = () => {
     const fetchMandate = async () => {
       try {
         const query = new URLSearchParams(window.location.search);
-        const returnedFromRazorpay =
-          query.has('razorpay_payment_link_id') ||
-          query.has('razorpay_payment_link_status') ||
-          query.has('razorpay_payment_id');
+        const paymentHints = {
+          paymentLinkId: query.get('razorpay_payment_link_id'),
+          paymentLinkStatus: query.get('razorpay_payment_link_status'),
+          paymentId: query.get('razorpay_payment_id'),
+        };
+        const returnedFromRazorpay = Boolean(
+          paymentHints.paymentLinkId ||
+          paymentHints.paymentLinkStatus ||
+          paymentHints.paymentId
+        );
+
         const res = returnedFromRazorpay
-          ? await razorpayAPI.syncStatus(id)
+          ? await razorpayAPI.syncStatus(id, paymentHints)
           : await mandateAPI.getById(id);
+
         if (res.data.success) {
           setMandate(res.data.mandate);
           if (res.data.mandate?.status === 'Active') {
             toast.success('Mandate approved successfully');
           }
+        }
+
+        if (returnedFromRazorpay) {
+          navigate(`/mandate/${id}`, { replace: true });
         }
       } catch (e) {
         toast.error('Failed to load mandate details');

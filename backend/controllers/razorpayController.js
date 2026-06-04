@@ -1,7 +1,32 @@
 const razorpay = require('../config/razorpay');
 const Mandate = require('../models/Mandate');
 const User = require('../models/User');
-const AIService = require('../services/aiService');
+const {
+  activateMandate,
+  syncMandateWithRazorpay,
+  syncPendingMandatesForUser,
+} = require('../utils/paymentSync');
+
+const getPublicCallbackUrl = (mandateId) => {
+  const frontendUrl = process.env.FRONTEND_URL?.trim();
+
+  if (!frontendUrl) {
+    return null;
+  }
+
+  try {
+    const callbackUrl = new URL(`/mandate/${mandateId}`, frontendUrl);
+    const isLocalhost =
+      callbackUrl.hostname === 'localhost' ||
+      callbackUrl.hostname === '127.0.0.1';
+
+    return callbackUrl.protocol === 'https:' && !isLocalhost
+      ? callbackUrl.toString()
+      : null;
+  } catch (error) {
+    return null;
+  }
+};
 
 // Initiate Mandate on Razorpay
 exports.initiateMandateOnRazorpay = async (
@@ -48,6 +73,7 @@ exports.initiateMandateOnRazorpay = async (
     }
 
     const owner = await User.findById(req.user._id);
+    const callbackUrl = getPublicCallbackUrl(mandate._id);
 
     const linkData = {
       amount: mandate.amount * 100,
@@ -66,11 +92,13 @@ exports.initiateMandateOnRazorpay = async (
         mandateId: mandate.mandateId,
         frequency: mandate.frequency,
         ownerName: owner.name
-      },
-      callback_url:
-        `${process.env.FRONTEND_URL}/mandate/${mandate._id}`,
-      callback_method: 'get'
+      }
     };
+
+    if (callbackUrl) {
+      linkData.callback_url = callbackUrl;
+      linkData.callback_method = 'get';
+    }
 
     if (shouldCreateUpiLink) {
       linkData.upi_link = true;
@@ -168,26 +196,31 @@ exports.syncMandatePaymentStatus = async (req, res) => {
       });
     }
 
-    if (!mandate.razorpayPaymentLinkId) {
-      return res.json({
-        success: true,
-        mandate
-      });
-    }
+    const syncedMandate = await syncMandateWithRazorpay(mandate, {
+      paymentLinkId: req.body?.paymentLinkId,
+      paymentLinkStatus: req.body?.paymentLinkStatus,
+      paymentId: req.body?.paymentId,
+    });
 
-    const paymentLink = await razorpay.paymentLink.fetch(
-      mandate.razorpayPaymentLinkId
-    );
-
-    if (paymentLink.status === 'paid' && mandate.status !== 'Active') {
-      mandate.status = 'Active';
-      await mandate.save();
+    let paymentLinkStatus = req.body?.paymentLinkStatus || null;
+    if (syncedMandate.razorpayPaymentLinkId) {
+      try {
+        const paymentLink = await razorpay.paymentLink.fetch(
+          syncedMandate.razorpayPaymentLinkId
+        );
+        paymentLinkStatus = paymentLink.status;
+      } catch (fetchError) {
+        console.error(
+          'Could not fetch payment link after sync:',
+          fetchError.error?.description || fetchError.message
+        );
+      }
     }
 
     return res.json({
       success: true,
-      mandate,
-      paymentLinkStatus: paymentLink.status
+      mandate: syncedMandate,
+      paymentLinkStatus
     });
   } catch (error) {
     return res.status(500).json({
@@ -195,6 +228,29 @@ exports.syncMandatePaymentStatus = async (req, res) => {
       message: error.error?.description ||
         error.message ||
         'Failed to sync payment status'
+    });
+  }
+};
+
+exports.syncAllPendingMandates = async (req, res) => {
+  try {
+    await syncPendingMandatesForUser(req.user._id);
+
+    const mandates = await Mandate.find({
+      user: req.user._id
+    }).sort({ createdAt: -1 });
+
+    return res.json({
+      success: true,
+      count: mandates.length,
+      mandates
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.error?.description ||
+        error.message ||
+        'Failed to sync pending mandates'
     });
   }
 };
@@ -210,28 +266,44 @@ exports.handleWebhook = async (req, res) => {
     const event = body.event;
     console.log('Webhook event:', event);
 
-    if (event === 'payment_link.paid') {
-      const linkId =
-        body.payload?.payment_link?.entity?.id;
-      if (linkId) {
-        const mandate = await Mandate.findOneAndUpdate(
-          { razorpayPaymentLinkId: linkId },
-          { status: 'Active' },
-          { new: true }
+    const activateByPaymentLink = async (linkId, shortUrlFromWebhook) => {
+      let mandate = linkId
+        ? await Mandate.findOne({ razorpayPaymentLinkId: linkId })
+        : null;
+
+      if (!mandate && shortUrlFromWebhook) {
+        mandate = await Mandate.findOne({ shortUrl: shortUrlFromWebhook });
+      }
+
+      if (!mandate) {
+        console.log(
+          '⚠️ Mandate activation skipped (no matching mandate found)'
         );
-        console.log('✅ Mandate activated!');
-        
-        // Sync payment data to AI service
-        if (mandate) {
-          try {
-            await AIService.calculateRiskScore(mandate._id);
-            console.log('✅ AI Risk Score Updated for mandate:', mandate.mandateId);
-          } catch (aiError) {
-            console.error('AI Service error (non-critical):', aiError.message);
-          }
-        }
+        return null;
+      }
+
+      await activateMandate(mandate);
+      console.log('✅ Mandate activated:', mandate.mandateId);
+      return mandate;
+    };
+
+    if (
+      event === 'payment_link.paid' ||
+      event === 'payment_link.partially_paid'
+    ) {
+      const entity = body.payload?.payment_link?.entity;
+      await activateByPaymentLink(entity?.id, entity?.short_url);
+    }
+
+    if (event === 'payment.captured') {
+      const payment = body.payload?.payment?.entity;
+      const linkId = payment?.payment_link_id;
+
+      if (linkId) {
+        await activateByPaymentLink(linkId);
       }
     }
+
 
     res.json({ received: true });
   } catch (error) {

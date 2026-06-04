@@ -1,4 +1,5 @@
 const Mandate = require('../models/Mandate');
+const { syncMandateWithRazorpay, syncPendingMandatesForUser } = require('../utils/paymentSync');
 
 // Create Mandate
 exports.createMandate = async (req, res) => {
@@ -64,6 +65,8 @@ exports.createMandate = async (req, res) => {
 // Get All Mandates
 exports.getAllMandates = async (req, res) => {
   try {
+    await syncPendingMandatesForUser(req.user._id);
+
     const mandates = await Mandate.find({
       user: req.user._id
     }).sort({ createdAt: -1 });
@@ -97,7 +100,9 @@ exports.getMandateById = async (req, res) => {
       });
     }
 
-    res.json({ success: true, mandate });
+    const syncedMandate = await syncMandateWithRazorpay(mandate);
+
+    res.json({ success: true, mandate: syncedMandate });
 
   } catch (error) {
     res.status(500).json({

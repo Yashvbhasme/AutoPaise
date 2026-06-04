@@ -1,7 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { toast } from 'react-hot-toast'
-import { BarChart3 } from 'lucide-react'
 import logo from '../assets/logo.png'
 
 export default function Navbar() {
@@ -25,10 +24,6 @@ export default function Navbar() {
           <Link className="hover:text-white" to="/">Home</Link>
           <Link className="hover:text-white" to="/dashboard">Dashboard</Link>
           <Link className="hover:text-white" to="/create-mandate">Create Mandate</Link>
-          <Link className="hover:text-white flex items-center gap-1" to="/ai-dashboard">
-            <BarChart3 className="w-4 h-4" />
-            AI Insights
-          </Link>
           <Link className="hover:text-white" to="/settings">Settings</Link>
         </nav>
 

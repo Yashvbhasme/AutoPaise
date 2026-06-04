@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { mandateAPI } from '../utils/api';
 import toast from 'react-hot-toast';
 import logo from '../assets/logo.png';
-import { RiskBadge } from '../components/RiskAndReminder';
 
 // ===== SIDEBAR COMPONENT =====
 const Sidebar = ({ active, onNavigate }) => {
@@ -386,7 +385,7 @@ const StatusBadge = ({ status }) => {
 
 // ===== MAIN DASHBOARD =====
 const Dashboard = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [mandates, setMandates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -403,8 +402,10 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    // Always refresh on Dashboard load so newly-paid mandates show as Active immediately.
     loadMandates();
   }, []);
+
 
   const loadMandates = async () => {
     try {
@@ -694,7 +695,7 @@ const Dashboard = () => {
                   }}>
                     {['Mandate ID', 'Customer', 
                       'UPI ID', 'Amount', 
-                      'Frequency', 'Status', 'Risk',
+                      'Frequency', 'Status', 
                       'Action'].map(h => (
                       <th key={h} style={{
                         padding: '12px 16px',
@@ -784,15 +785,6 @@ const Dashboard = () => {
                         <StatusBadge 
                           status={mandate.status} 
                         />
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        {token && (
-                          <RiskBadge 
-                            mandateId={mandate._id} 
-                            userToken={token} 
-                            size="sm" 
-                          />
-                        )}
                       </td>
                       <td style={{ padding: '14px 16px' }}>
                         <button
